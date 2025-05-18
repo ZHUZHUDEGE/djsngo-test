@@ -1,0 +1,21 @@
+{% extends 'accounts/base.html' %}
+
+{% block title %}投票列表{% endblock %}
+
+{% block content %}
+<h2>投票列表</h2>
+<a href="{% url 'polls:create_question' %}">创建新投票</a>
+
+<ul>
+    {% for question in questions %}
+    <li>
+        <a href="{% url 'polls:detail' question.id %}">{{ question.question_text }}</a>
+        - 由 {{ question.author.username }} 发布
+        <span>({{ question.pub_date|date:"Y-m-d H1:i" }})</span>
+        {% if question.author == user %}
+        <a href="{% url 'polls:add_choices' question.id %}">添加选项</a>
+        {% endif %}
+    </li>
+    {% endfor %}
+</ul>
+{% endblock %}

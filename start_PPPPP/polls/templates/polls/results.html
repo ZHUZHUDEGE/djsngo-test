@@ -1,0 +1,17 @@
+{% extends 'accounts/base.html' %}
+
+{% block title %}{{ question.question_text }} - 结果{% endblock %}
+
+{% block content %}
+<h2>{{ question.question_text }} - 结果</h2>
+
+<ul>
+    {% for choice in question.choice_set.all %}
+    <li>{{ choice.choice_text }} -- {{ choice.votes }} 票</li>
+    {% endfor %}
+</ul>
+
+<a href="{% url 'polls:detail' question.id %}">再次投票?</a>
+<br>
+<a href="{% url 'polls:index' %}">返回投票列表</a>
+{% endblock %}

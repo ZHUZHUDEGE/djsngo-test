@@ -1,0 +1,12 @@
+{% extends 'accounts/base.html' %}
+
+{% block title %}创建投票问题{% endblock %}
+
+{% block content %}
+<h2>创建新投票问题</h2>
+<form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">下一步：添加选项</button>
+</form>
+{% endblock %}

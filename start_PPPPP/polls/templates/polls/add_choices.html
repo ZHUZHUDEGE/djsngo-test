@@ -1,0 +1,24 @@
+{% extends 'accounts/base.html' %}
+
+{% block title %}为"{{ question.question_text }}"添加选项{% endblock %}
+
+{% block content %}
+<h2>为"{{ question.question_text }}"添加选项</h2>
+
+<h3>已有选项：</h3>
+<ul>
+    {% for choice in choices %}
+    <li>{{ choice.choice_text }}</li>
+    {% empty %}
+    <li>暂无选项</li>
+    {% endfor %}
+</ul>
+
+<h3>添加新选项：</h3>
+<form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit" name="add_another">保存并添加另一个</button>
+    <button type="submit">完成</button>
+</form>
+{% endblock %}

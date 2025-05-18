@@ -1,0 +1,30 @@
+docker run 
+--hostname=76297614a1f2 
+--mac-address=a2:0f:1c:33:1f:0a 
+--env=SQLITE_DATABASE=db.sqlite3 
+--env=PATH=/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin 
+--env=LANG=C.UTF-8 
+--env=GPG_KEY=0D96DF4D4110E5C43FBFB17F2D347EA6AA65421D 
+-env=PYTHON_VERSION=3.7.2 
+--env=PYTHON_PIP_VERSION=19.0.1 
+--env=CFLAGS=-DSQLITE_DEFAULT_CACHE_SIZE=-8000             
+-DSQLITE_DEFAULT_FOREIGN_KEYS=1             
+-DSQLITE_DEFAULT_MEMSTATUS=0             
+-DSQLITE_DEFAULT_PAGE_SIZE=4096             
+-DSQLITE_DEFAULT_SYNCHRONOUS=0             
+-DSQLITE_DEFAULT_WAL_SYNCHRONOUS=0             
+-DSQLITE_DISABLE_DIRSYNC             
+-DSQLITE_ENABLE_COLUMN_METADATA             
+-DSQLITE_ENABLE_DESERIALIZE             
+-DSQLITE_ENABLE_FTS3             
+-DSQLITE_ENABLE_FTS3_PARENTHESIS             
+-DSQLITE_ENABLE_FTS4             
+-DSQLITE_ENABLE_FTS5             
+-DSQLITE_ENABLE_JSON1             
+-DSQLITE_ENABLE_MEMDB             -DSQLITE_ENABLE_STAT4             -DSQLITE_ENABLE_STMTVTAB             
+-DSQLITE_ENABLE_UNLOCK_NOTIFY             
+-DSQLITE_ENABLE_UPDATE_DELETE_LIMIT             -DSQLITE_LIKE_DOESNT_MATCH_BLOBS             
+-DSQLITE_MAX_EXPR_DEPTH=0             -DSQLITE_SOUNDEX             -DSQLITE_STMTJRNL_SPILL=-1             
+-DSQLITE_TEMP_STORE=3             -DSQLITE_USE_ALLOCA             -DSQLITE_USE_URI             
+-DSQLITE_DEFAULT_WAL_AUTOCHECKPOINT=512             -DHAVE_USLEEP             
+-O2 -fPIC --volume=/data --network=bridge --workdir=/data -p 8080:8080 --restart=no --runtime=runc -d coleifer/sqlite-web:latest
