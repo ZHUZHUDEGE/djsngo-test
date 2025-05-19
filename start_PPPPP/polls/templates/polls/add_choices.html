@@ -18,7 +18,13 @@
 <form method="post">
     {% csrf_token %}
     {{ form.as_p }}
-    <button type="submit" name="add_another">保存并添加另一个</button>
-    <button type="submit">完成</button>
+    <button type="submit" name="add_another" formaction="{% url 'polls:add_choices' question.id %}">保存并添加另一个</button>
+    <button type="submit" formaction="{% url 'polls:index' %}">完成</button>
 </form>
+
+<div style="display:none;">
+    <p>当前question.id: {{ question.id }}</p>
+    <p>URL反向解析: {% url 'polls:add_choices' question.id %}</p>
+</div>
+
 {% endblock %}

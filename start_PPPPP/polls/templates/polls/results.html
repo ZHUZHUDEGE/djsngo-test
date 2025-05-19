@@ -14,4 +14,10 @@
 <a href="{% url 'polls:detail' question.id %}">再次投票?</a>
 <br>
 <a href="{% url 'polls:index' %}">返回投票列表</a>
+
+<div style="display:none;">
+    <p>当前question.id: {{ question.id }}</p>
+    <p>URL反向解析测试: {% url 'polls:results' question.id %}</p>
+</div>
+
 {% endblock %}

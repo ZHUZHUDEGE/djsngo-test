@@ -3,18 +3,32 @@
 {% block title %}{{ question.question_text }}{% endblock %}
 
 {% block content %}
-<h2>{{ question.question_text }}</h2>
+<h1>{{ question.question_text }}</h1>
 
-{% if error_message %}<p><strong>{{ error_message }}</strong></p>{% endif %}
+<p>最少选择：{{ question.min_choices }}，最多选择：{{ question.max_choices }}</p>
+<p>每个用户最多投票：{{ question.max_votes_per_user }} 张票</p>
+
+{% if error_message %}
+  <p style="color: red;">{{ error_message }}</p>
+{% endif %}
 
 <form action="{% url 'polls:vote' question.id %}" method="post">
-    {% csrf_token %}
-    {% for choice in question.choice_set.all %}
-    <input type="radio" name="choice" id="choice{{ forloop.counter }}" value="{{ choice.id }}">
-    <label for="choice{{ forloop.counter }}">{{ choice.choice_text }}</label><br>
-    {% endfor %}
-    <input type="submit" value="投票">
+  {% csrf_token %}
+  {% for choice in question.choice_set.all %}
+    <label>
+      <input type="{% if question.allow_multiple_choices %}checkbox{% else %}radio{% endif %}" 
+             name="choice" value="{{ choice.id }}">
+      {{ choice.choice_text }}
+    </label><br>
+  {% endfor %}
+  <button type="submit">投票</button>
 </form>
 
 <a href="{% url 'polls:results' question.id %}">查看结果</a>
+
+<div style="display:none;">
+  <p>当前question.id: {{ question.id }}</p>
+  <p>URL反向解析测试: {% url 'polls:results' question.id %}</p>
+</div>
+
 {% endblock %}
