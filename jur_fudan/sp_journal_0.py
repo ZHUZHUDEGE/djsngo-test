@@ -17,8 +17,10 @@ import time
 import tool
 import simplejson
 
-from cropper import TransparentCropper
+from img.cropper import TransparentCropper
 from img.coordinate import get_new_bigImg
+from img.multi_slider_dir import find_more_mode
+from img.save_img import save_image
 
 ppp= {
         "title": "",
@@ -47,78 +49,10 @@ ppp= {
     }
 
 
-
-def download_image(image_url, save_path):
-    """
-    下载图片并保存到指定路径
-    :param image_url: 图片的URL
-    :param save_path: 图片保存的路径（包括文件名）
-    :return: 如果下载成功返回 True，否则返回 False
-    """
-    try:
-        # 发送 HTTP 请求下载图片
-        response = requests.get(image_url, stream=True)
-        if response.status_code == 200:
-            # 确保保存路径的目录存在
-            os.makedirs(os.path.dirname(save_path), exist_ok=True)
-            # 保存图片
-            with open(save_path, 'wb') as file:
-                for chunk in response.iter_content(1024):
-                    file.write(chunk)
-            print(f"图片已保存到：{save_path}")
-            return True
-        else:
-            print(f"图片下载失败，状态码：{response.status_code}")
-            return False
-    except Exception as e:
-        print(f"下载图片时发生错误：{e}")
-        return False
-
-
-# 保存滑块和背景到本地
-def save_image(driver:webdriver.Chrome ,path1="smallImage.png", path2="smallImage_no_alpha.png", path3="bigImage.png", path4='new_bigImage.png'):
-    bigImage = driver.find_element(By.CSS_SELECTOR, '#app > div > div > div > div.verifybox-bottom > div > div.verify-img-out > div > img')
-    bigImg = bigImage.get_attribute("src")  # 获取图片的style属性
-    if bigImg.startswith('http'):
-        if download_image(bigImg, '.\\bigImage.png') == True:
-            print('下载成功')
-    # bs64模式
-    elif bigImg.startswith('data:image/png;base64'):
-        bigImg = bigImg + '结束了'
-        bImg_base64 = re.findall('data:image/png;base64,(.*?)结束了', bigImg, re.S | re.I)[0]
-        bImgdata = base64.b64decode(bImg_base64)
-
-        # 将图片保存为文件
-        with open(path3, 'wb') as f:
-            f.write(bImgdata)
-    smallImage = driver.find_element(By.CSS_SELECTOR,
-                                     '#app > div > div > div > div.verifybox-bottom > div > div.verify-bar-area > div > div > div > img')
-    smallImg = smallImage.get_attribute("src")  # 获取图片的style属性
-    if smallImg.startswith('http'):
-        if download_image(smallImg, '.\\smallImage.png') == True:
-            print('下载成功')
-    elif smallImg.startswith('data:image/png;base64'):
-        # bs64模式
-        smallImg = smallImg + '结束了'
-        sImg_base64 = re.findall('data:image/png;base64,(.*?)结束了', smallImg, re.S | re.I)[0]
-        sImgdata = base64.b64decode(sImg_base64)
-        # 将图片保存为文件
-        with open(path1, 'wb') as f:
-            f.write(sImgdata)
-
-    cropper = TransparentCropper(path1)
-    cropper.opencv_crop(path2)
-
-    if get_new_bigImg(path1, path3, path4) == True:
-        return [path1, path2, path3, path4]
-    else:
-        return None
-
-
 def detect_and_visualize(bg_path, slider_path,roi_width = 200, show_steps=False):
     """
     改进的滑块验证码识别方法，带有可视化功能
-
+    破解下载PDF使用
     参数:
         bg_path: 背景图路径
         slider_path: 滑块图路径
@@ -256,72 +190,125 @@ def detect_and_visualize(bg_path, slider_path,roi_width = 200, show_steps=False)
     return gap_x, max_val
 
 
-def split_number(N):
-    '''
-    :param N: 需要移动
-    :return: 将移动长度分段结果
-    '''
-    if N <= 40:
-        # Split into 2 numbers
-        b = max(round(N / 2.5), 11) if N >= 20 else round(N / 2.5)
-        a = N - b
-        if a < b:
-            a, b = b, a
-        return [a, b]
-    else:
-        # Try splitting into 3 numbers
-        c = max(round(N / 4.75), 11)
-        best_split = None
-        best_ratio_diff = float('inf')
+def human_like_drag_advanced(driver, element, target_distance, duration=2.0):
+    action = ActionChains(driver)
+    location = element.location
+    start_x = location['x'] + element.size['width'] // 2
+    start_y = location['y'] + element.size['height'] // 2
 
-        for delta in [-1, 0, 1]:  # Try nearby values of c
-            current_c = c + delta
-            if current_c < 11:
-                continue
-            b = round(1.5 * current_c)
-            a = N - b - current_c
-            if a >= b >= current_c:
-                ratio1 = a / b
-                ratio2 = b / current_c
-                ratio_diff = abs(ratio1 - 1.5) + abs(ratio2 - 1.5)
-                if ratio_diff < best_ratio_diff:
-                    best_ratio_diff = ratio_diff
-                    best_split = [a, b, current_c]
+    # 生成贝塞尔曲线轨迹
+    points = generate_bezier_trajectory(
+        start_x, start_y,
+        target_distance,
+        steps=30
+    )
 
-        if best_ratio_diff < 0.5:  # Accept if ratios are close enough
-            return best_split
-        else:
-            # Fall back to 2 numbers
-            b = max(round(N / 2.5), 11)
-            a = N - b
-            if a < b:
-                a, b = b, a
-            return [a, b]
+    action.click_and_hold(element).perform()
+
+    total_moved = 0
+    for i in range(1, len(points)):
+        x, y = points[i]
+        dx = x - points[i - 1][0]
+        dy = y - points[i - 1][1]
+
+        # 动态速度控制（开始和结束慢）
+        progress = total_moved / target_distance
+        speed_factor = 0.3 + 0.7 * np.sin(progress * np.pi)
+        move_time = max(0.05, duration / len(points) * speed_factor)
+
+        action.move_by_offset(dx, dy).pause(move_time).perform()
+        total_moved += dx
+
+        # 随机停顿
+        if random.random() < 0.1:
+            time.sleep(random.uniform(0.05, 0.1))
+
+        action.release().perform()
 
 
-def run_slider(target_dis):
-    res = split_number(target_dis)
-    start = [830, 620]
-    if len(res) == 2:
-        pyautogui.moveTo(start[0], start[1] + random.randint(-3, 3), duration=0.5)
-        time.sleep(random.uniform(0.01, 0.08))
-        pyautogui.mouseDown()
-        pyautogui.moveTo(start[0] + res[0], start[1] + random.randint(-3, 3), duration=0.5)
-        time.sleep(random.uniform(0.01, 0.08))
-        pyautogui.moveTo(start[0] + res[0] + res[1], start[1] + random.randint(-3, 3), duration=0.5)
-        time.sleep(random.uniform(0.01, 0.08))
-        pyautogui.mouseUp()
-    if len(res) == 3:
-        pyautogui.moveTo(start[0], start[1] + random.randint(-3, 3), duration=0.5)
-        time.sleep(random.uniform(0.01, 0.08))
-        pyautogui.mouseDown()
-        pyautogui.moveTo(start[0] + res[0], start[1] + random.randint(-3, 3), duration=0.5)
-        time.sleep(random.uniform(0.01, 0.08))
-        pyautogui.moveTo(start[0] + res[0] + res[1], start[1] + random.randint(-3, 3), duration=0.5)
-        time.sleep(random.uniform(0.01, 0.08))
-        pyautogui.moveTo(start[0] + res[0] + res[1] + res[2], start[1] + random.randint(-3, 3), duration=0.5)
-        time.sleep(random.uniform(0.01, 0.08))
-        pyautogui.mouseUp()
+def generate_bezier_trajectory(start_x, start_y, distance, steps=30):
+    """生成贝塞尔曲线轨迹"""
+    end_x = start_x + distance
+    ctrl1 = start_x + distance * 0.3
+    ctrl2 = start_x + distance * 0.7
+
+    points = []
+    for t in np.linspace(0, 1, steps):
+        # 贝塞尔曲线公式
+        x = (1 - t) ** 3 * start_x + 3 * (1 - t) ** 2 * t * ctrl1 + 3 * (1 - t) * t ** 2 * ctrl2 + t ** 3 * end_x
+        y = start_y + random.uniform(-3, 3)
+        points.append((x, y))
+    return points
+
+
+# def split_number(N):
+#     '''
+#     :param N: 需要移动
+#     :return: 将移动长度分段结果
+#     '''
+#     if N <= 40:
+#         # Split into 2 numbers
+#         b = max(round(N / 2.5), 11) if N >= 20 else round(N / 2.5)
+#         a = N - b
+#         if a < b:
+#             a, b = b, a
+#         return [a, b]
+#     else:
+#         # Try splitting into 3 numbers
+#         c = max(round(N / 4.75), 11)
+#         best_split = None
+#         best_ratio_diff = float('inf')
+#
+#         for delta in [-1, 0, 1]:  # Try nearby values of c
+#             current_c = c + delta
+#             if current_c < 11:
+#                 continue
+#             b = round(1.5 * current_c)
+#             a = N - b - current_c
+#             if a >= b >= current_c:
+#                 ratio1 = a / b
+#                 ratio2 = b / current_c
+#                 ratio_diff = abs(ratio1 - 1.5) + abs(ratio2 - 1.5)
+#                 if ratio_diff < best_ratio_diff:
+#                     best_ratio_diff = ratio_diff
+#                     best_split = [a, b, current_c]
+#
+#         if best_ratio_diff < 0.5:  # Accept if ratios are close enough
+#             return best_split
+#         else:
+#             # Fall back to 2 numbers
+#             b = max(round(N / 2.5), 11)
+#             a = N - b
+#             if a < b:
+#                 a, b = b, a
+#             return [a, b]
+#
+#
+# def run_slider(target_dis):
+#     res = split_number(target_dis)
+#     start = [830, 620]
+#     if len(res) == 2:
+#         pyautogui.moveTo(start[0], start[1] + random.randint(-3, 3), duration=0.5)
+#         time.sleep(random.uniform(0.01, 0.08))
+#         pyautogui.mouseDown()
+#         pyautogui.moveTo(start[0] + res[0], start[1] + random.randint(-3, 3), duration=0.5)
+#         time.sleep(random.uniform(0.01, 0.08))
+#         pyautogui.moveTo(start[0] + res[0] + res[1], start[1] + random.randint(-3, 3), duration=0.5)
+#         time.sleep(random.uniform(0.01, 0.08))
+#         pyautogui.mouseUp()
+#     if len(res) == 3:
+#         pyautogui.moveTo(start[0], start[1] + random.randint(-3, 3), duration=0.5)
+#         time.sleep(random.uniform(0.01, 0.08))
+#         pyautogui.mouseDown()
+#         pyautogui.moveTo(start[0] + res[0], start[1] + random.randint(-3, 3), duration=0.5)
+#         time.sleep(random.uniform(0.01, 0.08))
+#         pyautogui.moveTo(start[0] + res[0] + res[1], start[1] + random.randint(-3, 3), duration=0.5)
+#         time.sleep(random.uniform(0.01, 0.08))
+#         pyautogui.moveTo(start[0] + res[0] + res[1] + res[2], start[1] + random.randint(-3, 3), duration=0.5)
+#         time.sleep(random.uniform(0.01, 0.08))
+#         pyautogui.mouseUp()
+
+
 
 
 def contains_digit(s):
@@ -601,6 +588,7 @@ def driver_start():
 
     return driver
 
+
 def mouse_move(driver: webdriver.Chrome):
     element = driver.find_element(By.CSS_SELECTOR,'#verify_pic > div.verify-bar-area > div > div > div')
     soup = BeautifulSoup(driver.page_source, 'lxml')
@@ -614,6 +602,7 @@ def mouse_move(driver: webdriver.Chrome):
         ActionChains(driver).move_by_offset(xoffset=size, yoffset=random.randint(-2,2)).perform()
         ActionChains(driver).release().perform()
 
+
 def add_log(text):
     logs = tool.read_json('log.txt')
     logs.append(text)
@@ -624,7 +613,14 @@ def read_log():
     logs = tool.read_json('log.txt')
     return logs
 
+
 if __name__ == "__main__":
+    first_page= {
+        'big':    '#app > div > div > div > div.verifybox-bottom > div > div.verify-img-out > div > img',
+        'small':  '#app > div > div > div > div.verifybox-bottom > div > div.verify-bar-area > div > div > div > img',
+        'slider': '#app > div > div > div > div.verifybox-bottom > div > div.verify-bar-area > div > div > i',
+        'refresh':'#app > div > div > div > div.verifybox-bottom > div > div.verify-img-out > div > div > i',
+    }
     # target ='复旦大学'
     # list_404 =[]
     # for index in range(6,7):
@@ -702,28 +698,32 @@ if __name__ == "__main__":
 
                     time.sleep(random.uniform(2, 3))
                     soup = BeautifulSoup(driver.page_source, 'lxml')
-                    if soup.select('#app > div > div > div > div.verifybox-top')[0].text.find('请完成安全验证') != -1:
+                    if soup.select('#app > div > div > div > div.verifybox-top') != -1:
                         Confidence = 0
                         initial_gap = 0
                         while Confidence < 0.8:
-                            if save_image(driver):
-                                initial_gap, Confidence = detect_and_visualize(
+                            big_img_e = driver.find_element(By.CSS_SELECTOR,first_page['big'])
+                            small_img_e = driver.find_element(By.CSS_SELECTOR,first_page['small'])
+
+                            if save_image(big_img_e,small_img_e):
+                                initial_gap, Confidence = find_more_mode(
                                     'new_bigImage.png',
                                     'smallImage_no_alpha.png')
                                 print(Confidence)
-                                time.sleep(10000)
                             else:
-                                exit(0)
+                                driver.find_element(By.CSS_SELECTOR,first_page['refresh']).click()
                             if Confidence > 0.8:
+                                slider_e = driver.find_element(By.CSS_SELECTOR, first_page['slider'])
                                 print(initial_gap)
-                                time.sleep(10000)
-                                run_slider(initial_gap)
+                                human_like_drag_advanced(driver,slider_e,initial_gap)
                                 time.sleep(random.uniform(2, 3))
                                 break
 
+                    soup = BeautifulSoup(driver.page_source, 'lxml')
                     while True:
                         if soup.select('body > div > div > div.title > p'):
-                            if soup.select('body > div > div > div.title > p')[0].text.find('系统检测到您的访问行为异常，请帮助我们完成 ') != -1:
+                            if soup.select('body > div > div > div.title > p')[0].text.find(
+                                    '系统检测到您的访问行为异常，请帮助我们完成 ') != -1:
                                 mouse_move(driver)
                                 time.sleep(random.uniform(2, 3))
                                 soup = BeautifulSoup(driver.page_source, 'lxml')
@@ -737,9 +737,9 @@ if __name__ == "__main__":
                             continue
 
                     detail = get_journal()
-                    if detail!= None and detail not in pdf_detail:
+                    if detail != None and detail not in pdf_detail:
                         pdf_detail.append(detail)
-                    tool.write_json(json_path.replace('_pdf','_detail'),pdf_detail)
+                    tool.write_json(json_path.replace('_pdf', '_detail'), pdf_detail)
             driver.quit()
             tool.kill_all_java_processes()
             add_log(json_path)

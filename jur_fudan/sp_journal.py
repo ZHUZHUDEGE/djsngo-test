@@ -14,7 +14,7 @@ from seleniumwire.undetected_chromedriver import ChromeOptions, Chrome, webdrive
 import time
 import tool
 import numpy as np
-from cropper import TransparentCropper
+from img.cropper import TransparentCropper
 from matplotlib import pyplot as plt
 
 det = ddddocr.DdddOcr(det=False, ocr=False, show_ad=False )

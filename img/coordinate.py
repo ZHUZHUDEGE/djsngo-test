@@ -5,7 +5,6 @@ import numpy as np
 def crop_image(image_path, y_max, error_distance, output_path='cropped.png'):
     """
     裁剪图像（不缩放，直接截取指定区域）
-
     参数:
         image_path (str): 输入图像路径
         y_max (int): 图像最高点
