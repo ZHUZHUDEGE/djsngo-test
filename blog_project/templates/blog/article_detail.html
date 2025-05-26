@@ -1,0 +1,55 @@
+{% extends 'blog/base.html' %}
+
+{% block title %}{{ article.title }}{% endblock %}
+
+{% block extra_head %}
+<style>
+    .markdown-content img {
+        max-width: 100%;
+        height: auto;
+    }
+    .markdown-content pre {
+        background-color: #f8f9fa;
+        padding: 1rem;
+        border-radius: 0.25rem;
+    }
+    .markdown-content code {
+        background-color: #f8f9fa;
+        padding: 0.2rem 0.4rem;
+        border-radius: 0.25rem;
+    }
+    .markdown-content blockquote {
+        border-left: 4px solid #dee2e6;
+        padding-left: 1rem;
+        color: #6c757d;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card mb-4">
+    <div class="card-body">
+        <h1 class="card-title">{{ article.title }}</h1>
+        <p class="text-muted">
+            Posted by {{ article.author.username }} on {{ article.created_at|date:"F d, Y" }}
+            {% if article.tags.all %}
+            | Tags:
+            {% for tag in article.tags.all %}
+            <a href="{% url 'article_list_by_tag' tag.slug %}" class="badge bg-secondary text-decoration-none">
+                {{ tag.name }}
+            </a>
+            {% endfor %}
+            {% endif %}
+        </p>
+        <div class="markdown-content">
+            {{ article.get_content_as_markdown }}
+        </div>
+    </div>
+    {% if request.user == article.author %}
+    <div class="card-footer">
+        <a href="{% url 'article_update' article.pk %}" class="btn btn-sm btn-outline-primary">Edit</a>
+        <a href="{% url 'article_delete' article.pk %}" class="btn btn-sm btn-outline-danger">Delete</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

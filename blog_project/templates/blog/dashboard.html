@@ -1,0 +1,73 @@
+{% extends 'blog/base.html' %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+    <div class="col-md-8">
+        <h2>Welcome back, {{ user.username }}!</h2>
+        <p class="lead">This is your personal dashboard.</p>
+        <div class="card mt-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5>Your Articles</h5>
+                <a href="{% url 'article_create' %}" class="btn btn-sm btn-primary">New Article</a>
+            </div>
+                <div class="card-body">
+                    {% if user.article_set.all %}
+                    <div class="list-group">
+                        {% for article in user.article_set.all %}
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h6><a href="{% url 'article_detail' article.pk %}">{{ article.title }}</a></h6>
+                                    <small class="text-muted">
+                                        {{ article.created_at|date:"F d, Y" }} |
+                                        Status: {% if article.published %}Published{% else %}Draft{% endif %} |
+                                        Tags:
+                                        {% for tag in article.tags.all %}
+                                        <a href="{% url 'article_list_by_tag' tag.slug %}" class="badge bg-secondary text-decoration-none">
+                                            {{ tag.name|safe }}
+                                        </a>
+                                        {% endfor %}
+                                    </small>
+                                </div>
+                                <div>
+                                    <a href="{% url 'article_update' article.pk %}" class="btn btn-sm btn-outline-primary">Edit</a>
+                                    <a href="{% url 'article_delete' article.pk %}" class="btn btn-sm btn-outline-danger">Delete</a>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p>You haven't written any articles yet.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                    <h5>Your Recent Activity</h5>
+            </div>
+            <div class="card-body">
+                <!-- 这里可以放用户最近的活动 -->
+                <p>No recent activity.</p>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h5>Quick Actions</h5>
+            </div>
+            <div class="card-body">
+                <a href="{% url 'profile' %}" class="btn btn-outline-primary d-block mb-2">View Profile</a>
+                <a href="{% url 'article_create' %}" class="btn btn-outline-success d-block mb-2">New Post</a>
+                <a href="#" class="btn btn-outline-info d-block">Settings</a>
+            </div>
+        </div>
+    </div>
+    </div>
+</div>
+{% endblock %}
